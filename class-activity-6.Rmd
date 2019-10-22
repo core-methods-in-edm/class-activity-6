@@ -3,8 +3,8 @@ title: 'HUDK4050: Class Activity 6 Response'
 author: "Timothy Lee"
 date: "19/10/2019"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 # Data Management
 ```{r}
@@ -149,13 +149,11 @@ load("assn2.RData")
 
 #Assign rownames
 rownames(person_class_DF) <- person_class_DF$id
-person_class_DF <- person_class_DF %>% select(-id)
+person_class_DF_2 <- person_class_DF %>% dplyr::select(-id)
 
-#Find number of appropriate clusters
-fviz_nbclust(person_class_DF, kmeans)
-
-#Perform k means clustering with 2 clusters (any more doesn't seem to help)
-class_fit <- kmeans(person_class_DF, 2)
+#Perform k means clustering with 4 clusters
+library(klaR)
+class_fit <- kmodes(person_class_DF, 4)
 
 #Import igraph
 library(igraph)
