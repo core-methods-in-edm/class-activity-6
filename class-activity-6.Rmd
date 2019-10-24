@@ -1,14 +1,65 @@
 ---
 title: 'HUDK4050: Class Activity 6'
-author: "Charles Lang"
-date: "10/23/2018"
-output: html_document
+author: "Ningyao Xu"
+date: "10/16/2018"
+output: pdf_document
 ---
 # Data Management
 ```{r}
 #Load data
 DF1 <- read.csv("HUDK405019-clustering.csv", header = TRUE)
+library(tidyr)
+library(dplyr)
+#rownames == First name + Last name
+for (i in c(1,2,15,16))
+{DF1[,i] = as.character(DF1[,i])}
+DF1$name <- paste(DF1$First.Name, DF1$Last.Name)
+rownames(DF1) <- DF1$name
+DF1 <- DF1[,3:16]
 
+
+#Delete those who write latitude and longtitude twice in the survey
+list <- NULL
+for (i in 1:nrow(DF1))
+  { if (DF1[i,13] == DF1[i,14] )
+list <- c(list,i)}
+DF1 <- DF1[-list,]
+
+
+# reverse those who put latitude and longtitude in wrong order
+a <-NULL
+b<- NULL
+reverse <- grep("E",DF1[,13])
+for (i in reverse)
+  { a =  DF1[i,13]
+    b =  DF1[i,14]
+    DF1[i,13] <- b
+    DF1[i,14] <- a}
+
+#Find the signal and delete all the things after the signal
+#"Â° is how my DELL shows "°", I have no idea why it shows this way
+for (j in c(13:14)){
+for (i in 1:nrow(DF1))
+  { if (grepl("Â°", DF1[i,j]) )
+  { psn <- as.numeric(regexpr("Â°", DF1[i,j]))
+    DF1[i,j] <-  substr(DF1[i,j], 1, psn-1)}}}
+
+#If you are using mac, use the following one
+for (j in c(13:14)){
+for (i in 1:nrow(DF1))
+  { if (grepl("\\D", DF1[i,j]) )
+  { psn <- as.numeric(regexpr("\\D", DF1[i,j]))
+    DF1[i,j] <-  substr(DF1[i,j], 1, psn-1)}}}
+
+#Delete all the space, alphabet from the data and turn all the data into numeric 
+ for (i in c(1:11,13,14))
+{ DF1[,i]= gsub("[[:alpha:]]", "", DF1[,i]) 
+  DF1[,i]= gsub(" ", "", DF1[,i])
+  DF1[,i] = as.numeric(DF1[,i])}
+# Omit all the NAs from the data
+DF1 <- na.omit(DF1)
+
+DF2 <- data.frame(select_if(DF1,is.numeric))
 #Convert the index numbers of the data fram into the student names.
   
 #Wrangle data using dplyr to include only the numerical values.
@@ -16,7 +67,7 @@ DF1 <- read.csv("HUDK405019-clustering.csv", header = TRUE)
 #Scale the data so that no variable has undue influence
 
 DF2 <- scale(DF2)
- 
+
 ```
 
 # Find lattitudes & longitudes for cities
@@ -46,13 +97,13 @@ Also, we need to choose the number of clusters we think are in the data. We will
 
 ```{r}
 
-fit <- kmeans(DF2, 1) 
+fit <- kmeans(DF2, 4) 
 
 #We have created an object called "fit" that contains all the details of our clustering including which observations belong to each cluster.
 
 #We can access the list of clusters by typing "fit$cluster", the top row corresponds to the original order the rows were in. Notice we have deleted some rows.
 
-fit$cluster yay
+fit$cluster
 
 #We can also attach these clusters to te original dataframe by using the "data.frame" command to create a new data frame called K4.
 
@@ -60,18 +111,52 @@ DF3 <- data.frame(DF2, fit$cluster)
 
 #Have a look at the DF3 dataframe. Lets change the names of the variables to make it more convenient with the names() command.
 
-names(DF3) <- c("1", "2", "3", "4", "5", "cluster") #c() stands for concatonate and it creates a vector of anything, in this case a vector of names.
 
 ```
 
 # Visualize your clusters in ggplot
 ```{r}
 #Create a scatterplot that plots location of each student and colors the points according to their cluster 
+DF4 <- data.frame(DF1[,13],DF1[,14],fit$cluster)
+names(DF4)  <- c("latitude", "longtitude","cluster")
+attach(DF4)
+library(ggplot2)
+ggplot(DF4, aes(x =  longtitude, y =latitude, pch = factor(cluster))) +
+    geom_point(aes(color = factor(cluster)))
+
 ```
 
 # Can you group students from the classes data set in Assignment 2 using K-modes?
 
 ```{r}
+
+DT1 <- read.csv("hudk4050-classes.csv",header = TRUE)
+DT1$Name <- paste(DT1$First.Name, DT1$Last.Name)
+DT2_dirty <- DT1[,3:9]
+DT3 <- DT2_dirty %>% gather(classnum, classcode, `Class.1`, `Class.2`, `Class.3`, `Class.4`, `Class.5`, `Class.6`) %>% select(-c(classnum))
+DT3$classcode = gsub(" ", "", DT3$classcode)
+DT3 <- DT3 %>% filter(classcode != "HUDK4050") %>% filter(Name != "ZIMO CHEN")
+DT3$Count = 1
+DT3 <- DT3[which(DT3$classcode != ""),]
+DT4 <- DT3 %>% spread(classcode,Count)
+row.names(DT4) = DT4$Name
+DT4$Name <- NULL
+DT4 = ifelse(is.na(DT4), 0, 1)
+DT5 = as.matrix(DT4)
+DT5 <- scale(DT5)
+library(MASS)
+set.seed(123)
+pca=princomp(DT5[,1:50],cor=T)
+screeplot(pca,type="line",lwd=2)
+#According to this plot, maybe we should try cluster 6 groups.
+set.seed(123)
+fit2 <- kmeans(DT5,6) 
+fit2$size
+cluster <- data.frame(fit2$cluster)
+colnames(cluster) <- c("cluster")
+cluster
+
+# Just to check, I am in the Applied Statistics program and people in the group 5 are exactly those in the Applied statistics program with me!
 
 ```
 
