@@ -1,0 +1,7 @@
+---
+title: "Class Activity 6"
+author: "Charles Lang"
+date: "10/26/2019"
+output: html_document
+---
+
