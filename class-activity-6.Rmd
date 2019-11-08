@@ -85,7 +85,7 @@ DF5 <- data.frame(DF2, DF4, fit$cluster)
 ```{r}
 #Create a scatterplot that plots location of each student and colors the points according to their cluster 
 library(ggplot2)
-ggplot(DF5, aes(longitude, lattitude, color = as.factor(fit.cluster))) + geom_point(size = 3)
+ggplot(DF5, aes(longitude, lattitude, color = as.factor(fit$cluster))) + geom_point(size = 3) 
 
 
 ```
