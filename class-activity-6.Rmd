@@ -8,6 +8,7 @@ output: html_document
 ```{r}
 library(dplyr)
 library(tidyr)
+##
 
 #Load data
 DF1 <- read.csv("HUDK405019-clustering.csv", header = TRUE)
@@ -93,7 +94,6 @@ ggplot(DF5, aes(longitude, lattitude, color = as.factor(fit$cluster))) + geom_po
 # Can you group students from the classes data set in Assignment 2 using K-modes?
 
 ```{r}
-
 library(klaR)
 
 fit2<- kmodes(EdgeC, 4) 
