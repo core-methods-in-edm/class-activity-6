@@ -26,20 +26,20 @@ library(varhandle)
 library(purrr)
 
 DF3 <- DF2 %>% 
-        select("months_in_NYC" = How.many.months.have.you.lived.in.New.York.City.,
-               "siblings" = How.many.siblings..brothers.sisters..do.you.have.,
-               "sport_per_week" = How.many.times.do.you.play.sport.each.week.,
-               "miles_from_home" = How.many.miles.do.you.travel.from.home.to.TC.,
-               "android_friends" = Estimate.how.many.of.your.friends.own.Android.phones,
-               "movies_per_year" = How.many.movies.have.you.seen.in.the.cinema.this.year.,
-               "pets" = How.many.pets.have.you.owned.in.your.life.,
-               "people_met" = How.many.people.have.you.met.for.the.first.time.this.year.,
-               "cook_per_week" = How.many.time.do.you.cook.for.yourself.each.week.,
-               "class_load" = How.many.classes.are.you.taking.this.semester.,
-               "states_visited" = How.many.states.have.you.visited.in.the.US.,
-               "latitude" = What.is.the.latitude.of.the.city.town.you.grew.up.in...Look.up.on.a.map.service..EG.Google.Maps.,
-               "longitude" = What.is.the.longitude.of.the.city.town.you.grew.up.in.
-               ) %>%
+        dplyr::select("months_in_NYC" = How.many.months.have.you.lived.in.New.York.City.,
+                      "siblings" = How.many.siblings..brothers.sisters..do.you.have.,
+                      "sport_per_week" = How.many.times.do.you.play.sport.each.week.,
+                      "miles_from_home" = How.many.miles.do.you.travel.from.home.to.TC.,
+                      "android_friends" = Estimate.how.many.of.your.friends.own.Android.phones,
+                      "movies_per_year" = How.many.movies.have.you.seen.in.the.cinema.this.year.,
+                      "pets" = How.many.pets.have.you.owned.in.your.life.,
+                      "people_met" = How.many.people.have.you.met.for.the.first.time.this.year.,
+                      "cook_per_week" = How.many.time.do.you.cook.for.yourself.each.week.,
+                      "class_load" = How.many.classes.are.you.taking.this.semester.,
+                      "states_visited" = How.many.states.have.you.visited.in.the.US.,
+                      "latitude" = What.is.the.latitude.of.the.city.town.you.grew.up.in...Look.up.on.a.map.service..EG.Google.Maps.,
+                      "longitude" = What.is.the.longitude.of.the.city.town.you.grew.up.in.
+                      ) %>%
         mutate("miles_from_home" = as.numeric(unfactor(miles_from_home))) %>%
         mutate("months_in_NYC" = as.numeric(unfactor(months_in_NYC))) %>%
         mutate("android_friends" = as.numeric(unfactor(android_friends))) %>%
@@ -111,7 +111,7 @@ fviz_nbclust(DF4, kmeans)
 ```{r}
 
 #Computing K means clustering with 5 clusters
-
+library(klaR)
 fit <- kmeans(DF4, 5)
 
 #We have created an object called "fit" that contains all the details of our clustering including which observations belong to each cluster.
@@ -131,9 +131,29 @@ K4$cluster <- as.factor(K4$cluster)
 
 #Have a look at the DF3 dataframe. Lets change the names of the variables to make it more convenient with the names() command.
 
-names(DF3) <- c("1", "2", "3", "4", "5", "cluster") #c() stands for concatonate and it creates a vector of anything, in this case a vector of names.
+#names(DF3) <- c("1", "2", "3", "4", "5", "cluster")
+#c() stands for concatonate and it creates a vector of anything, in this case a vector of names.
+# Don't need to do this, I've already made the names nice above using dplyr::select
+
 
 ```
+
+** For Assignment 3 **
+
+```{r}
+#Get DFs
+class_act_6_df <- K4
+class_act_6_scaled_data <- DF4
+class_act_6_names <- DF2$Name
+
+
+save(class_act_6_df,
+     class_act_6_scaled_data,
+     class_act_6_names,
+     file = "class_act_6.RData")
+
+```
+
 
 # Visualize your clusters in ggplot
 ```{r}
@@ -152,8 +172,7 @@ rownames(person_class_DF) <- person_class_DF$id
 person_class_DF_2 <- person_class_DF %>% dplyr::select(-id)
 
 #Perform k means clustering with 4 clusters
-library(klaR)
-class_fit <- kmodes(person_class_DF, 4)
+class_fit <- kmodes(person_class_DF_2, 4)
 
 #Import igraph
 library(igraph)
