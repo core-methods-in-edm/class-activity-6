@@ -1,0 +1,121 @@
+---
+title: 'HUDK4050: Class Activity 6'
+author: "Charles Lang"
+date: "10/23/2018"
+output: html_document
+---
+# Data Management
+```{r}
+#Load data
+DF1 <- read.csv("HUDK405019-clustering.csv", header = TRUE)
+library(dplyr)
+library(tidyr)
+
+#Convert the index numbers of the data frame into the student names.
+DF1 <- unite(DF1, "Name", c("First.Name", "Last.Name"), sep = ".")
+
+DF1 <- data.frame(DF1[,-1], row.names = DF1$Name)
+
+#Wrangle data using dplyr to include only the numerical values.
+unlist(lapply(DF1, is.numeric))
+#shows which columns are not numeric
+#shows that: 1, 4, 5, 11, 12, 13, 14 columns are non-numeric
+
+#location variables columns 12, 13, and 14 are supposed to be non-numeric values; remove these three columns 
+DF2 <- select(DF1, 1:11)
+
+#Remove all the characters from DF2
+DF2 <- DF2 %>% mutate_all(funs(gsub("[a-zA-Z]", "", .)))
+
+#Convert all variables to numeric
+DF2 <- DF2 %>% mutate_all(funs(as.numeric(.)))
+
+#Scale the data so that no variable has undue influence
+DF2 <- as.data.frame(scale(DF2))
+ 
+#Replace missing values with average score EG - zero
+DF2 <- DF2 %>% mutate_all(funs(ifelse(is.na(.) == TRUE, 0, .)))
+
+
+```
+
+# Find lattitudes & longitudes for cities
+```{r}
+#Unfortunately Google has restricted access to the Googple Maps API so the code below no longer works. Instead you have the lats and longs in your data.
+
+#install.packages("ggmap")
+#install.packages("rgdal")
+#library(ggmap)
+#library(tmaptools)
+
+#Request lattitude and longitude from Google Maps API
+#DF2 <- geocode(as.character(DF2$Q1_1), output = "latlon", source = "dsk")
+
+#select lattitude and longitude variables from DF1 + name them properly
+DF3 <- select(DF1, 13:14)
+names(DF3) <- c("lattitude", "longitude")
+
+#Remove any characters
+DF3 <- DF3 %>% mutate_all(funs(gsub("[a-zA-Z]", "", .)))
+#Remove any unncessary puncutations
+DF3 <- DF3 %>% mutate_all(funs(sub("[?]", "", .)))
+#Remove anything after the first non-numeric character in lattitude and longitude
+DF3$lattitude <- sub(",.*$","", DF3$lattitude) 
+DF3$lattitude <- sub("°.*$","", DF3$lattitude)
+DF3$longitude <- gsub(".*,","",DF3$longitude)
+DF3$longitude <- sub("°.*$","", DF3$longitude)
+
+#Convert all variables to numeric
+DF3 <- DF3 %>% mutate_all(funs(as.numeric(.)))
+```
+
+Now we will run the K-means clustering algorithm we talked about in class. 
+1) The algorithm starts by randomly choosing some starting values 
+2) Associates all observations near to those values with them
+3) Calculates the mean of those clusters of values
+4) Selects the observation closest to the mean of the cluster
+5) Re-associates all observations closest to this observation
+6) Continues this process until the clusters are no longer changing
+
+Notice that in this case we have 10 variables and in class we only had 2. It is impossible to vizualise this process with 10 variables.
+
+Also, we need to choose the number of clusters we think are in the data. We will start with 4.
+
+```{r}
+
+fit <- kmeans(DF2, 3) 
+
+#We have created an object called "fit" that contains all the details of our clustering including which observations belong to each cluster.
+
+#We can access the list of clusters by typing "fit$cluster", the top row corresponds to the original order the rows were in. Notice we have deleted some rows.
+
+fit$cluster
+
+#We can also attach these clusters to te original dataframe by using the "data.frame" command to create a new data frame called K4.
+
+DF4 <- data.frame(DF2, DF3, fit$cluster)
+
+#Have a look at the DF3 dataframe. Lets change the names of the variables to make it more convenient with the names() command.
+
+#names(DF3) <- c("1", "2", "3", "4", "5", "cluster") #c() stands for concatonate and it creates a vector of anything, in this case a vector of names.
+
+```
+
+# Visualize your clusters in ggplot
+```{r}
+#Create a scatterplot that plots location of each student and colors the points according to their cluster 
+library(ggplot2)
+ggplot(DF4, aes(longitude, lattitude, color = as.factor(fit.cluster))) + geom_point(size = 3)
+```
+
+# Can you group students from the classes data set in Assignment 2 using K-modes?
+
+```{r}
+#load data from assignment 2
+DF5 <- read.csv("hudk4050-classes.csv", header = TRUE)
+
+#install.packages("klaR")
+library(klaR)
+fit2 <- kmodes(DF5, 3)
+```
+
