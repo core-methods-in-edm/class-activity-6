@@ -1,21 +1,31 @@
 ---
 title: 'HUDK4050: Class Activity 6'
-author: "Charles Lang"
+author: "Qiyang(Minnie) Lin"
 date: "10/23/2018"
 output: html_document
 ---
 # Data Management
 ```{r}
+library(dplyr)
+library(tidyr)
+##
+
 #Load data
 DF1 <- read.csv("HUDK405019-clustering.csv", header = TRUE)
 
 #Convert the index numbers of the data fram into the student names.
+DF1$name<-paste(DF1$First.Name, DF1$Last.Name, sep = " ")
+row.names(DF1)<- DF1$name
+DF1.1<-DF1[,-c(1,2,14:17)]
   
 #Wrangle data using dplyr to include only the numerical values.
 
-#Scale the data so that no variable has undue influence
+DF2 <- mutate_all(DF1.1, funs(gsub("[a-zA-Z]", "", .)))
+DF2 <- mutate_all(DF2, funs(as.numeric(.)))
+DF2[is.na(DF2)] <- 0
 
-DF2 <- scale(DF2)
+#Scale the data so that no variable has undue influence
+DF2<- as.data.frame(scale(DF2))
  
 ```
 
@@ -30,6 +40,14 @@ DF2 <- scale(DF2)
 
 #Request lattitude and longitude from Google Maps API
 #DF2 <- geocode(as.character(DF2$Q1_1), output = "latlon", source = "dsk")
+
+DF3<- select(DF1, c(15,16))
+names(DF3) <- c("lattitude", "longitude")
+DF4 <- mutate_all(DF3, funs(gsub("[a-zA-Z]", "", .)))
+DF4 <- mutate_all(DF4, funs(as.numeric(.)))
+DF4[is.na(DF4)] <- 0
+
+
 ```
 
 Now we will run the K-means clustering algorithm we talked about in class. 
@@ -46,32 +64,40 @@ Also, we need to choose the number of clusters we think are in the data. We will
 
 ```{r}
 
-fit <- kmeans(DF2, 1) 
+fit <- kmeans(DF2, 4) 
 
 #We have created an object called "fit" that contains all the details of our clustering including which observations belong to each cluster.
 
 #We can access the list of clusters by typing "fit$cluster", the top row corresponds to the original order the rows were in. Notice we have deleted some rows.
 
-fit$cluster yay
+fit$cluster
 
 #We can also attach these clusters to te original dataframe by using the "data.frame" command to create a new data frame called K4.
 
-DF3 <- data.frame(DF2, fit$cluster)
+DF5 <- data.frame(DF2, DF4, fit$cluster)
 
 #Have a look at the DF3 dataframe. Lets change the names of the variables to make it more convenient with the names() command.
 
-names(DF3) <- c("1", "2", "3", "4", "5", "cluster") #c() stands for concatonate and it creates a vector of anything, in this case a vector of names.
+#names(DF5) <- c("1", "2", "3", "4", "5", "cluster") #c() stands for concatonate and it creates a vector of anything, in this case a vector of names.
 
 ```
 
 # Visualize your clusters in ggplot
 ```{r}
 #Create a scatterplot that plots location of each student and colors the points according to their cluster 
+library(ggplot2)
+ggplot(DF5, aes(longitude, lattitude, color = as.factor(fit$cluster))) + geom_point(size = 3) 
+
+
 ```
 
 # Can you group students from the classes data set in Assignment 2 using K-modes?
 
 ```{r}
+library(klaR)
+
+fit2<- kmodes(EdgeC, 4) 
+fit2$cluster
 
 ```
 
