@@ -1,26 +1,83 @@
 ---
-title: 'HUDK4050: Class Activity 6'
-author: "Charles Lang"
-date: "10/23/2018"
-output: html_document
+title: 'HUDK4050: Class Activity 6 Response'
+author: "Timothy Lee"
+date: "19/10/2019"
+output:
+  html_document: default
+  pdf_document: default
 ---
 # Data Management
 ```{r}
+library(tidyverse)
+
 #Load data
 DF1 <- read.csv("HUDK405019-clustering.csv", header = TRUE)
 
-#Convert the index numbers of the data fram into the student names.
-  
-#Wrangle data using dplyr to include only the numerical values.
+#Convert the index numbers of the data frame into the student names.
 
-#Scale the data so that no variable has undue influence
-
-DF2 <- scale(DF2)
+DF2 <- unite(DF1, col = "Name", 1:2, sep = "_")
+rownames(DF2) <- DF2$Name
  
 ```
 
-# Find lattitudes & longitudes for cities
 ```{r}
+#Wrangle data using dplyr to include only the numerical values.
+library(varhandle)
+library(purrr)
+
+DF3 <- DF2 %>% 
+        dplyr::select("months_in_NYC" = How.many.months.have.you.lived.in.New.York.City.,
+                      "siblings" = How.many.siblings..brothers.sisters..do.you.have.,
+                      "sport_per_week" = How.many.times.do.you.play.sport.each.week.,
+                      "miles_from_home" = How.many.miles.do.you.travel.from.home.to.TC.,
+                      "android_friends" = Estimate.how.many.of.your.friends.own.Android.phones,
+                      "movies_per_year" = How.many.movies.have.you.seen.in.the.cinema.this.year.,
+                      "pets" = How.many.pets.have.you.owned.in.your.life.,
+                      "people_met" = How.many.people.have.you.met.for.the.first.time.this.year.,
+                      "cook_per_week" = How.many.time.do.you.cook.for.yourself.each.week.,
+                      "class_load" = How.many.classes.are.you.taking.this.semester.,
+                      "states_visited" = How.many.states.have.you.visited.in.the.US.,
+                      "latitude" = What.is.the.latitude.of.the.city.town.you.grew.up.in...Look.up.on.a.map.service..EG.Google.Maps.,
+                      "longitude" = What.is.the.longitude.of.the.city.town.you.grew.up.in.
+                      ) %>%
+        mutate("miles_from_home" = as.numeric(unfactor(miles_from_home))) %>%
+        mutate("months_in_NYC" = as.numeric(unfactor(months_in_NYC))) %>%
+        mutate("android_friends" = as.numeric(unfactor(android_friends))) %>%
+        mutate("states_visited" = as.numeric(unfactor(states_visited)))
+
+#Remove spaces        
+DF3$latitude <- gsub("[[:space:]]", "", DF3$latitude)
+DF3$longitude <- gsub("[[:space:]]", "", DF3$longitude)
+
+#Remove non-numbers
+
+DF3$latitude <- gsub("[^[:digit:].]", "", DF3$latitude)
+DF3$longitude <- gsub("[^[:digit:].]", "", DF3$longitude)
+
+#Get first 3 characters
+DF3$latitude <- substring(DF3$latitude, first = 1, last = 3)
+DF3$longitude <- substring(DF3$longitude, first = 1, last = 3)
+
+#convert to numeric
+
+DF3$latitude <- as.numeric(DF3$latitude)
+DF3$longitude <- as.numeric(DF3$longitude)
+
+#Scale the data so that no variable has undue influence
+
+DF4 <- DF3 %>% scale() %>% as.data.frame()
+
+#The algorithm can't accept NAs, so we need to either remove them or change them to be the average of values in that column
+#I've opted for the latter approach.
+
+col_means <- map_dbl(DF4, mean, na.rm = TRUE) %>% as.list()
+DF4 <- replace_na(DF4, replace = col_means)
+
+```
+
+
+# Find lattitudes & longitudes for cities
+```{r eval = FALSE}
 #Unfortunately Google has restricted access to the Googple Maps API so the code below no longer works. Instead you have the lats and longs in your data.
 
 #install.packages("ggmap")
@@ -45,33 +102,89 @@ Notice that in this case we have 10 variables and in class we only had 2. It is 
 Also, we need to choose the number of clusters we think are in the data. We will start with 4.
 
 ```{r}
+#Choosing number of factors using elbow method
+library(factoextra)
+fviz_nbclust(DF4, kmeans)
+```
 
-fit <- kmeans(DF2, 1) 
+
+```{r}
+
+#Computing K means clustering with 5 clusters
+library(klaR)
+fit <- kmeans(DF4, 5)
 
 #We have created an object called "fit" that contains all the details of our clustering including which observations belong to each cluster.
+#Examining the structure of fit
+glimpse(fit)
+
 
 #We can access the list of clusters by typing "fit$cluster", the top row corresponds to the original order the rows were in. Notice we have deleted some rows.
 
-fit$cluster yay
+fit$cluster
 
-#We can also attach these clusters to te original dataframe by using the "data.frame" command to create a new data frame called K4.
+#We can also attach these clusters to the original dataframe by using the "data.frame" command to create a new data frame called K4.
 
-DF3 <- data.frame(DF2, fit$cluster)
+K4 <- data.frame(DF3, fit$cluster) %>%
+        rename(cluster = fit.cluster)
+K4$cluster <- as.factor(K4$cluster)
 
 #Have a look at the DF3 dataframe. Lets change the names of the variables to make it more convenient with the names() command.
 
-names(DF3) <- c("1", "2", "3", "4", "5", "cluster") #c() stands for concatonate and it creates a vector of anything, in this case a vector of names.
+#names(DF3) <- c("1", "2", "3", "4", "5", "cluster")
+#c() stands for concatonate and it creates a vector of anything, in this case a vector of names.
+# Don't need to do this, I've already made the names nice above using dplyr::select
+
 
 ```
 
+** For Assignment 3 **
+
+```{r}
+#Get DFs
+class_act_6_df <- K4
+class_act_6_scaled_data <- DF4
+class_act_6_names <- DF2$Name
+
+
+save(class_act_6_df,
+     class_act_6_scaled_data,
+     class_act_6_names,
+     file = "class_act_6.RData")
+
+```
+
+
 # Visualize your clusters in ggplot
 ```{r}
-#Create a scatterplot that plots location of each student and colors the points according to their cluster 
+#Create a scatterplot that plots location of each student and colors the points according to their cluster
+ggplot(K4, aes(x = latitude, y = longitude, color = cluster)) + geom_point()
 ```
 
 # Can you group students from the classes data set in Assignment 2 using K-modes?
 
 ```{r}
+#Load the data
+load("assn2.RData")
+
+#Assign rownames
+rownames(person_class_DF) <- person_class_DF$id
+person_class_DF_2 <- person_class_DF %>% dplyr::select(-id)
+
+#Perform k means clustering with 4 clusters
+class_fit <- kmodes(person_class_DF_2, 4)
+
+#Import igraph
+library(igraph)
+
+#Attach cluster info to the original dataframe
+
+plot.igraph(person_person_graph_data,
+     layout = layout.fruchterman.reingold,
+     vertex.size = 10,
+     vertex.color = class_fit$cluster,
+     vertex.label.cex = 0.4
+     )
 
 ```
 
