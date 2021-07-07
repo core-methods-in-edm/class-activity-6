@@ -8,14 +8,64 @@ output: html_document
 ```{r}
 #Load data
 DF1 <- read.csv("HUDK405019-clustering.csv", header = TRUE)
+DF1[, 3] <- gsub("[[:alpha:]]", "", DF1[, 3])
+DF1[, 6] <- gsub("[[:alpha:]]", "", DF1[, 6])
+DF1[, 7] <- gsub("[[:alpha:]]", "", DF1[, 7])
+DF1[, 3] <- as.numeric(DF1[, 3])
+DF1[, 6] <- as.numeric(DF1[, 6])
+DF1[, 7] <- as.numeric(DF1[, 7])
+
+#DF1<-lapply(DF1,gsub,pattern="", replacement="")
+#DF1[, 1:11] = as.numeric(as.character(DF1[,1:11]))
+#DF1 <- DF1 %>% mutate_all(as.character) %>% mutate_all(as.numeric)
+
+# cleaning data
+# reverse N E
+# gsub all  [[:alpha:]]
+# gsub all A and substring all before A
+
+DF1[, 15] <- as.character(DF1[, 15])
+DF1[, 16] <- as.character(DF1[, 16])
+rev <- grep("E", DF1[, 15])
+a <- NULL
+b <- NULL
+for (i in rev) {
+  a = DF1[i, 15]
+  b = DF1[i, 16]
+  DF1[i, 15] <- b
+  DF1[i, 16] <- a
+}
+
+for (j in c(15:16)){
+  for (i in 1:nrow(DF1))
+  { if (grepl("\\D", DF1[i,j]))
+  { psn <- as.numeric(regexpr("\\D", DF1[i,j]))
+    DF1[i,j] <- substr(DF1[i,j], 1, psn-1)}}
+}
+
+DF1[, 15] <- as.numeric(DF1[, 15])
+DF1[, 16] <- as.numeric(DF1[, 16])
+DF1 <- na.omit(DF1)
+DF1[, 15] <- as.character(DF1[, 15])
+DF1[, 16] <- as.character(DF1[, 16])
+
 
 #Convert the index numbers of the data fram into the student names.
-  
+library(tidyr)
+library(dplyr)
+DF2 <- unite(DF1, "First.Name", "Last.Name", col = name, sep = "_")
+row.names(DF2) = DF2$name
+DF2$name <- NULL
+
 #Wrangle data using dplyr to include only the numerical values.
+select_if(DF2, is.numeric)
+names(select_if(DF2, is.numeric))
+DF3 <- select(DF2, "How.many.months.have.you.lived.in.New.York.City.", "How.many.siblings..brothers.sisters..do.you.have.",  "How.many.times.do.you.play.sport.each.week.", "How.many.miles.do.you.travel.from.home.to.TC.", "Estimate.how.many.of.your.friends.own.Android.phones",  "How.many.movies.have.you.seen.in.the.cinema.this.year.", "How.many.pets.have.you.owned.in.your.life.",  "How.many.people.have.you.met.for.the.first.time.this.year.",   "How.many.time.do.you.cook.for.yourself.each.week.", "How.many.classes.are.you.taking.this.semester.")
 
 #Scale the data so that no variable has undue influence
 
-DF2 <- scale(DF2)
+DF3 <- scale(DF3)
+### scale?
  
 ```
 
@@ -45,33 +95,65 @@ Notice that in this case we have 10 variables and in class we only had 2. It is 
 Also, we need to choose the number of clusters we think are in the data. We will start with 4.
 
 ```{r}
-
-fit <- kmeans(DF2, 1) 
+### 10 variables???
+fit <- kmeans(DF3, 4) 
+### start with 4?
 
 #We have created an object called "fit" that contains all the details of our clustering including which observations belong to each cluster.
 
 #We can access the list of clusters by typing "fit$cluster", the top row corresponds to the original order the rows were in. Notice we have deleted some rows.
+### Delete rows?
 
-fit$cluster yay
+fit$cluster
+#yay
 
 #We can also attach these clusters to te original dataframe by using the "data.frame" command to create a new data frame called K4.
+### K4?
+K4 <- data.frame(DF3, fit$cluster)
 
-DF3 <- data.frame(DF2, fit$cluster)
+#Have a look at the K4 dataframe. Lets change the names of the variables to make it more convenient with the names() command.
 
-#Have a look at the DF3 dataframe. Lets change the names of the variables to make it more convenient with the names() command.
-
-names(DF3) <- c("1", "2", "3", "4", "5", "cluster") #c() stands for concatonate and it creates a vector of anything, in this case a vector of names.
+names(K4) <- c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "cluster") 
+#c() stands for concatonate and it creates a vector of anything, in this case a vector of names.
+### why only 1-5???
 
 ```
 
 # Visualize your clusters in ggplot
 ```{r}
 #Create a scatterplot that plots location of each student and colors the points according to their cluster 
+
+#cleaning data
+
+# combining data for location:
+DF4 <- data.frame(K4, DF1[15])
+DF5 <- data.frame(DF4, DF1[16])
+colnames(DF5) <- c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "cluster", "la", "lo")
+
+#ggplot 
+library(ggplot2)
+ggplot(DF5, aes(lo, la, color = as.factor(cluster))) +
+  geom_point()
+
 ```
 
 # Can you group students from the classes data set in Assignment 2 using K-modes?
 
 ```{r}
+### import data set via git hub
+### 10 variables???
+install.packages("klaR")
+library(klaR)
+
+DF7 <- read.csv("hudk4050-classes.csv", header = TRUE)
+DF8 <- unite(DF7, "First.Name", "Last.Name", col = name, sep = "_")
+DF9 <- DF8 %>% gather(classnum, classcode, `Class.1`, `Class.2`, `Class.3`, `Class.4`, `Class.5`, `Class.6`)
+DF9$classnum <- NULL
+DF9$classcode = gsub(" ", "", DF9$classcode)
+DF9 <- DF9 %>% filter(classcode != "HUDK4050") %>% filter(name != "ZIMO CHEN")
+
+fit2 <- kmodes(DF9, 4)
+(fit2$cluster)
 
 ```
 
